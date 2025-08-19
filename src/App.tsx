@@ -1,57 +1,39 @@
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import AuthScreen from './components/auth/AuthScreen';
-import Header from './components/layout/Header';
-import UserProfiles from './components/profiles/UserProfiles';
-import AvailabilityManager from './components/availability/AvailabilityManager';
-import LineupCreator from './components/lineup/LineupCreator';
-import ScheduleViewer from './components/schedule/ScheduleViewer';
-import SetlistManager from './components/setlist/SetlistManager';
-import NotificationInfo from './components/notifications/NotificationInfo';
+// src/App.tsx
+import React from "react";
+import { useAuth } from "./context/AuthContext";
 
-const AppContent: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState('profiles');
-
-  if (!isAuthenticated) {
-    return <AuthScreen />;
-  }
-
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'profiles':
-        return <UserProfiles />;
-      case 'availability':
-        return <AvailabilityManager />;
-      case 'lineup':
-        return <LineupCreator />;
-      case 'schedule':
-        return <ScheduleViewer />;
-      case 'setlist':
-        return <SetlistManager />;
-      case 'notifications':
-        return <NotificationInfo />;
-      default:
-        return <UserProfiles />;
-    }
-  };
+const App: React.FC = () => {
+  const { isAuthenticated, currentUser, login, logout } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="py-8">
-        {renderActiveTab()}
-      </main>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="p-6 bg-white rounded-xl shadow-lg text-center">
+        <h1 className="text-2xl font-bold mb-4">One Church Worship Team</h1>
+
+        {isAuthenticated && currentUser ? (
+          <>
+            <p className="mb-2">Welcome, {currentUser.name || currentUser.email}!</p>
+            <button
+              onClick={logout}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="mb-4">You are not logged in.</p>
+            <button
+              onClick={() => login("test@example.com", "password123")}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            >
+              Login (Demo)
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };
-
-function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
-}
 
 export default App;

@@ -7,7 +7,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error("❌ Supabase env vars are missing!");
   console.log("VITE_SUPABASE_URL:", supabaseUrl);
-  console.log("VITE_SUPABASE_ANON_KEY:", supabaseAnonKey ? "loaded" : "missing");
+  console.log("VITE_SUPABASE_ANON_KEY:", supabaseAnonKey ? "loaded" : "present");
 } else {
   console.log("✅ Supabase client initialized with URL:", supabaseUrl);
 }

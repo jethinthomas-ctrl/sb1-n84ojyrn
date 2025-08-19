@@ -1,89 +1,129 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, AuthState } from '../types';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "../lib/supabaseClient";
+
+// 🔹 Type for Profile row from Supabase
+export interface UserProfile {
+  id: string;
+  email: string;
+  name?: string;
+  roles?: any;
+  baseLocation?: string;
+  mobileNumber?: string;
+  userRole: "Admin" | "Member";
+  created_at?: string;
+}
+
+interface AuthState {
+  isAuthenticated: boolean;
+  currentUser: UserProfile | null;
+}
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
-  register: (userData: Omit<User, 'id' | 'createdAt' | 'id'> & { password: string }) => Promise<boolean>;
-  logout: () => void;
+  register: (
+    userData: Omit<UserProfile, "id" | "created_at" | "userRole"> & { password: string }
+  ) => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     currentUser: null,
   });
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setAuthState({
-        isAuthenticated: true,
-        currentUser: JSON.parse(savedUser),
-      });
-    }
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u) => u.email === email && u.password === password);
+  // 🔄 Fetch user + profile
+  const getSession = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (user) {
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (profile && !error) {
+        setAuthState({
+          isAuthenticated: true,
+          currentUser: profile as UserProfile,
+        });
+      }
+    } else {
       setAuthState({
-        isAuthenticated: true,
-        currentUser: user,
+        isAuthenticated: false,
+        currentUser: null,
       });
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      return true;
     }
-    return false;
   };
 
-  const register = async (userData: Omit<User, 'id' | 'createdAt'> & { password: string }): Promise<boolean> => {
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const existingUser = users.find((u) => u.email === userData.email);
+  // 🟢 Run on mount + subscribe to auth state
+  useEffect(() => {
+    getSession();
 
-    if (existingUser) {
-      return false;
-    }
-
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-
-    setAuthState({
-      isAuthenticated: true,
-      currentUser: newUser,
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      getSession();
     });
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
 
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // 🔑 Login
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) return false;
+
+    await getSession();
     return true;
   };
 
-  const logout = () => {
+  // 🆕 Register
+  const register = async (
+    userData: Omit<UserProfile, "id" | "created_at" | "userRole"> & { password: string }
+  ): Promise<boolean> => {
+    const { email, password, name, roles, baseLocation, mobileNumber } = userData;
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error || !data.user) return false;
+
+    // create profile row
+    const { error: insertError } = await supabase.from("profiles").insert([
+      {
+        id: data.user.id,
+        email,
+        name,
+        roles,
+        baseLocation,
+        mobileNumber,
+        userRole: "Member", // default role
+      },
+    ]);
+
+    if (insertError) return false;
+
+    await getSession();
+    return true;
+  };
+
+  // 🚪 Logout
+  const logout = async () => {
+    await supabase.auth.signOut();
     setAuthState({
       isAuthenticated: false,
       currentUser: null,
     });
-    localStorage.removeItem('currentUser');
   };
 
   return (

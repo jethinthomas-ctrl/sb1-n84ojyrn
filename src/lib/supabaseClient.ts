@@ -1,15 +1,13 @@
+// src/lib/supabaseClient.ts
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// ✅ Environment variables (must be set in Netlify dashboard too)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://pvznspfghyrzukzotedp.supabase.co";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
-// ✅ Add safety + debug logs (only show in browser console)
+// ✅ Fail-safe check
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("❌ Supabase env vars are missing!");
-  console.log("VITE_SUPABASE_URL:", supabaseUrl);
-  console.log("VITE_SUPABASE_ANON_KEY:", supabaseAnonKey ? "loaded" : "present");
-} else {
-  console.log("✅ Supabase client initialized with URL:", supabaseUrl);
+  console.error("❌ Missing Supabase environment variables");
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

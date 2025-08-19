@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { createClient } from '@supabase/supabase-js';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { User, Role, Location } from '../../types';
 import { Users, Plus, Trash2, MapPin, Phone, Mail, Music, Edit2, Save, X, Shield, User as UserIcon } from 'lucide-react';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-
 const UserProfiles: React.FC = () => {
   const { currentUser } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useLocalStorage<User[]>('users', []);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingRoleUserId, setEditingRoleUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const [newUser, setNewUser] = useState({
     name: '',
@@ -27,21 +24,7 @@ const UserProfiles: React.FC = () => {
 
   const isAdmin = currentUser?.userRole === 'Admin';
 
-  // Fetch users from Supabase
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles') // Adjust 'profiles' to your user table name
-        .select('*');
-      if (error) console.error('Error fetching users:', error);
-      else setUsers(data || []);
-      setLoading(false);
-    };
-    fetchUsers();
-  }, []);
-
-  const handleAddUser = async (e: React.FormEvent) => {
+  const handleAddUser = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (newUser.roles.length === 0) {
@@ -51,59 +34,39 @@ const UserProfiles: React.FC = () => {
 
     const user: User = {
       ...newUser,
-      id: Date.now().toString(), // Temporary; Supabase will generate a UUID
+      id: Date.now().toString(),
       createdAt: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from('profiles') // Adjust table name
-      .insert([user]);
-    if (error) {
-      console.error('Error adding user:', error);
-      alert('Failed to add user. Check console for details.');
-    } else {
-      setUsers(prev => [...prev, user]);
-      setNewUser({
-        name: '',
-        roles: [],
-        baseLocation: 'Kharadi',
-        mobileNumber: '',
-        email: '',
-        userRole: 'Member',
-      });
-      setShowAddForm(false);
-    }
+    setUsers(prev => [...prev, user]);
+    setNewUser({
+      name: '',
+      roles: [],
+      baseLocation: 'Kharadi',
+      mobileNumber: '',
+      email: '',
+      userRole: 'Member',
+    });
+    setShowAddForm(false);
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      const { error } = await supabase
-        .from('profiles') // Adjust table name
-        .delete()
-        .eq('id', userId);
-      if (error) console.error('Error deleting user:', error);
-      else setUsers(prev => prev.filter(user => user.id !== userId));
+      setUsers(prev => prev.filter(user => user.id !== userId));
     }
   };
 
-  const handleUpdateUserRole = async (userId: string, newRole: 'Member' | 'Admin') => {
+  const handleUpdateUserRole = (userId: string, newRole: 'Member' | 'Admin') => {
     if (userId === currentUser?.id && newRole === 'Member') {
       if (!window.confirm('You are about to remove your own admin privileges. Are you sure?')) {
         return;
       }
     }
     
-    const { error } = await supabase
-      .from('profiles') // Adjust table name
-      .update({ userRole: newRole })
-      .eq('id', userId);
-    if (error) console.error('Error updating role:', error);
-    else {
-      setUsers(prev => prev.map(user => 
-        user.id === userId ? { ...user, userRole: newRole } : user
-      ));
-      setEditingRoleUserId(null);
-    }
+    setUsers(prev => prev.map(user => 
+      user.id === userId ? { ...user, userRole: newRole } : user
+    ));
+    setEditingRoleUserId(null);
   };
 
   const toggleRole = (role: Role) => {
@@ -125,8 +88,6 @@ const UserProfiles: React.FC = () => {
     };
     return colors[role];
   };
-
-  if (loading) return <div className="text-center py-12">Loading users...</div>;
 
   return (
     <div className="max-w-6xl mx-auto p-6">

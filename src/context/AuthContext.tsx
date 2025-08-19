@@ -3,7 +3,7 @@ import { User, AuthState } from '../types';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
-  register: (userData: Omit<User, 'id' | 'createdAt'>) => Promise<boolean>;
+  register: (userData: Omit<User, 'id' | 'createdAt' | 'id'> & { password: string }) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -38,9 +38,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: User) => u.email === email);
-    
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u) => u.email === email && u.password === password);
+
     if (user) {
       setAuthState({
         isAuthenticated: true,
@@ -52,10 +52,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return false;
   };
 
-  const register = async (userData: Omit<User, 'id' | 'createdAt'>): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const existingUser = users.find((u: User) => u.email === userData.email);
-    
+  const register = async (userData: Omit<User, 'id' | 'createdAt'> & { password: string }): Promise<boolean> => {
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const existingUser = users.find((u) => u.email === userData.email);
+
     if (existingUser) {
       return false;
     }
@@ -68,13 +68,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
-    
+
     setAuthState({
       isAuthenticated: true,
       currentUser: newUser,
     });
     localStorage.setItem('currentUser', JSON.stringify(newUser));
-    
+
     return true;
   };
 

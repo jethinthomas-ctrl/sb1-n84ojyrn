@@ -40,6 +40,7 @@ const AuthScreen: React.FC = () => {
         setError('Invalid email or password');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('Login failed. Please try again.');
     }
 
@@ -50,6 +51,8 @@ const AuthScreen: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    console.log('Register form data:', registerForm); // Debugging log
 
     if (registerForm.password !== registerForm.confirmPassword) {
       setError('Passwords do not match');
@@ -64,12 +67,16 @@ const AuthScreen: React.FC = () => {
     }
 
     try {
-      const { confirmPassword, password, ...userData } = registerForm;
+      const { confirmPassword, ...userData } = registerForm;
+      console.log('Sending registration data:', userData); // Debugging log
       const success = await register(userData);
       if (!success) {
         setError('Email already exists');
+      } else {
+        console.log('Registration successful');
       }
     } catch (err) {
+      console.error('Registration error:', err);
       setError('Registration failed. Please try again.');
     }
 
@@ -184,7 +191,7 @@ const AuthScreen: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Music className="inline h-4 w-4 mr-2" />
+                  <UserPlus className="inline h-4 w-4 mr-2" />
                   Roles (select all that apply)
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -194,7 +201,7 @@ const AuthScreen: React.FC = () => {
                         type="checkbox"
                         checked={registerForm.roles.includes(role)}
                         onChange={() => toggleRole(role)}
-                       className="h-4 w-4 text-gray-900 focus:ring-gray-900 border-gray-300 rounded"
+                        className="h-4 w-4 text-gray-900 focus:ring-gray-900 border-gray-300 rounded"
                       />
                       <span className="text-sm text-gray-700">{role}</span>
                     </label>

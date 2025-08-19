@@ -34,14 +34,17 @@ const AuthScreen: React.FC = () => {
     setLoading(true);
     setError('');
 
+    console.log('Login attempt with:', { email: loginForm.email, password: loginForm.password }); // Debugging log
+
     try {
       const success = await login(loginForm.email, loginForm.password);
+      console.log('Login result:', success); // Debugging log
       if (!success) {
-        setError('Invalid email or password');
+        setError('Invalid email or password. Please check your credentials or register again.');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Login failed. Please try again.');
+      setError('Login failed. Please check your email and password and try again.');
     }
 
     setLoading(false);
@@ -71,9 +74,10 @@ const AuthScreen: React.FC = () => {
       console.log('Sending registration data:', userData); // Debugging log
       const success = await register(userData);
       if (!success) {
-        setError('Email already exists');
+        setError('Email already exists or registration failed.');
       } else {
         console.log('Registration successful');
+        setIsLogin(true); // Automatically switch to login after successful registration
       }
     } catch (err) {
       console.error('Registration error:', err);

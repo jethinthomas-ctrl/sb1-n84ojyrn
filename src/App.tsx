@@ -23,12 +23,6 @@ const App: React.FC = () => {
         ) : (
           <>
             <p className="mb-4">You are not logged in.</p>
-            <button
-              onClick={() => login("test@example.com", "password123")}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              Login (Demo)
-            </button>
           </>
         )}
       </div>
